@@ -1,0 +1,38 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Go
+opense.ai/openseai
+opense.ai/bin/
+opense.ai/vendor/
+
+# Environment & secrets
+.env
+*.env.local
+config/config.yaml
+
+# Build artifacts
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test
+*.test
+coverage.out
+coverage.html
+
+# Temp
+tmp/
+*.tmp
+*.log
