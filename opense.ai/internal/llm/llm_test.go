@@ -1541,3 +1541,114 @@ func TestOllamaStreamHTTPError(t *testing.T) {
 		t.Fatalf("expected 500 error, got: %v", err)
 	}
 }
+// ════════════════════════════════════════════════════════════════════
+// Router LLMProvider interface tests
+// ════════════════════════════════════════════════════════════════════
+
+// Compile-time check: Router must satisfy LLMProvider.
+var _ LLMProvider = (*Router)(nil)
+
+func TestRouterName(t *testing.T) {
+	r := NewRouter("primary")
+	r.RegisterProvider(&mockProvider{name: "primary"})
+
+	name := r.Name()
+	if name != "router/primary" {
+		t.Errorf("Name(): got %q, want %q", name, "router/primary")
+	}
+}
+
+func TestRouterModels(t *testing.T) {
+	r := NewRouter("p1")
+	r.RegisterProvider(&mockProvider{name: "p1"})
+
+	models := r.Models()
+	if len(models) != 1 || models[0] != "mock-model" {
+		t.Errorf("Models(): got %v", models)
+	}
+}
+
+func TestRouterModelsMultipleProviders(t *testing.T) {
+	r := NewRouter("p1")
+	r.RegisterProvider(&mockProvider{name: "p1"})
+	r.RegisterProvider(&mockProvider{name: "p2"})
+
+	models := r.Models()
+	// Both providers return "mock-model" — should be de-duplicated
+	if len(models) != 1 {
+		t.Errorf("Models() should de-duplicate: got %v", models)
+	}
+}
+
+func TestRouterModelsMultipleDistinct(t *testing.T) {
+	r := NewRouter("p1")
+	r.RegisterProvider(&distinctModelProvider{name: "p1", models: []string{"gpt-4", "gpt-3.5"}})
+	r.RegisterProvider(&distinctModelProvider{name: "p2", models: []string{"claude-3", "gpt-4"}})
+
+	models := r.Models()
+	// "gpt-4" appears in both — should be de-duplicated
+	// Expected: gpt-4, gpt-3.5, claude-3 = 3 unique
+	if len(models) != 3 {
+		t.Errorf("Models() should have 3 unique models, got %d: %v", len(models), models)
+	}
+}
+
+func TestRouterPing(t *testing.T) {
+	r := NewRouter("ok")
+	r.RegisterProvider(&mockProvider{name: "ok", pingErr: nil})
+
+	err := r.Ping(context.Background())
+	if err != nil {
+		t.Errorf("Ping(): got %v, want nil", err)
+	}
+}
+
+func TestRouterPingError(t *testing.T) {
+	r := NewRouter("bad")
+	r.RegisterProvider(&mockProvider{name: "bad", pingErr: fmt.Errorf("connection refused")})
+
+	err := r.Ping(context.Background())
+	if err == nil {
+		t.Error("Ping(): expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "connection refused") {
+		t.Errorf("Ping(): got %q, want 'connection refused'", err.Error())
+	}
+}
+
+func TestRouterPingNoPrimary(t *testing.T) {
+	r := NewRouter("missing")
+	// No providers registered
+	err := r.Ping(context.Background())
+	if err == nil {
+		t.Error("Ping(): expected error for missing primary, got nil")
+	}
+}
+
+func TestRouterModelsEmpty(t *testing.T) {
+	r := NewRouter("none")
+	// No providers registered
+	models := r.Models()
+	if len(models) != 0 {
+		t.Errorf("Models(): expected empty, got %v", models)
+	}
+}
+
+// distinctModelProvider is a mock with configurable model lists.
+type distinctModelProvider struct {
+	name   string
+	models []string
+}
+
+func (d *distinctModelProvider) Name() string    { return d.name }
+func (d *distinctModelProvider) Models() []string { return d.models }
+func (d *distinctModelProvider) Ping(ctx context.Context) error { return nil }
+func (d *distinctModelProvider) Chat(ctx context.Context, messages []Message, tools []Tool, opts *ChatOptions) (*Response, error) {
+	return &Response{Content: "ok"}, nil
+}
+func (d *distinctModelProvider) ChatStream(ctx context.Context, messages []Message, tools []Tool, opts *ChatOptions) (<-chan StreamChunk, error) {
+	ch := make(chan StreamChunk, 1)
+	ch <- StreamChunk{Content: "ok", Done: true}
+	close(ch)
+	return ch, nil
+}

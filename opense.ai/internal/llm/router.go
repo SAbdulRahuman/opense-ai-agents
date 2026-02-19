@@ -213,6 +213,37 @@ func (r *Router) HealthCheck(ctx context.Context) map[string]error {
 	return results
 }
 
+// Name returns the name of the primary provider (satisfies LLMProvider).
+func (r *Router) Name() string {
+	return "router/" + r.primary
+}
+
+// Models returns the union of models from all registered providers (satisfies LLMProvider).
+func (r *Router) Models() []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var all []string
+	seen := make(map[string]bool)
+	for _, p := range r.providers {
+		for _, m := range p.Models() {
+			if !seen[m] {
+				seen[m] = true
+				all = append(all, m)
+			}
+		}
+	}
+	return all
+}
+
+// Ping checks the primary provider's health (satisfies LLMProvider).
+func (r *Router) Ping(ctx context.Context) error {
+	p, err := r.Primary()
+	if err != nil {
+		return err
+	}
+	return p.Ping(ctx)
+}
+
 // ProviderNames returns the names of all registered providers.
 func (r *Router) ProviderNames() []string {
 	r.mu.RLock()
