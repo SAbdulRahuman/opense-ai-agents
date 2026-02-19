@@ -1,8 +1,6 @@
-package config
-
 // Package config handles configuration loading for OpeNSE.ai.
 // It supports YAML config files with environment variable overrides.
-// package config
+package config
 
 import (
 	"fmt"
