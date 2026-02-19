@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  # Go backend API server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: go-builder
+    command: ["/app/build/openseai", "serve"]
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - OPENSEAI_API_HOST=0.0.0.0
+      - OPENSEAI_API_PORT=8080
+    volumes:
+      - ./config:/app/config:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Next.js web frontend
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:8080
+      - NEXT_PUBLIC_WS_URL=ws://api:8080
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # Optional: Redis for WebSocket pub/sub (enable when needed)
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - "6379:6379"
+  #   restart: unless-stopped

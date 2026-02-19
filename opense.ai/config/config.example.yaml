@@ -1,0 +1,54 @@
+# OpeNSE.ai Configuration
+# Copy to config.yaml and customize
+
+llm:
+  primary: openai          # openai | ollama | gemini | anthropic
+  openai_key: ""           # env: OPENSEAI_LLM_OPENAI_KEY
+  ollama_url: "http://localhost:11434"
+  gemini_key: ""           # env: OPENSEAI_LLM_GEMINI_KEY
+  anthropic_key: ""        # env: OPENSEAI_LLM_ANTHROPIC_KEY
+  model: "gpt-4o"          # or "qwen2.5:32b" for Ollama
+  fallback_model: "gpt-4o-mini"
+  temperature: 0.1
+  max_tokens: 4096
+
+broker:
+  provider: paper          # paper | zerodha | ibkr
+  zerodha:
+    api_key: ""            # env: OPENSEAI_BROKER_ZERODHA_API_KEY
+    api_secret: ""         # env: OPENSEAI_BROKER_ZERODHA_API_SECRET
+  ibkr:
+    host: "127.0.0.1"
+    port: 7497
+
+trading:
+  mode: paper              # paper | live
+  max_position_pct: 5.0    # max 5% of capital per trade
+  daily_loss_limit_pct: 2.0
+  max_open_positions: 10
+  require_confirmation: true  # human-in-the-loop for live trades
+  confirm_timeout_sec: 60
+  initial_capital: 1000000    # ₹10,00,000
+
+analysis:
+  cache_ttl: 300           # 5 min cache for market data
+  concurrent_fetches: 5    # parallel goroutines for data fetching
+
+financeql:
+  cache_ttl: 60            # 1 min cache for FinanceQL query results
+  max_range: 365d          # max range selector (1 year)
+  alert_check_interval: 30 # alert re-evaluation interval in seconds
+  repl_history_file: "~/.openseai/financeql_history"
+
+api:
+  host: "0.0.0.0"
+  port: 8080
+  cors_origins:
+    - "http://localhost:3000"
+
+web:
+  url: "http://localhost:3000"
+
+logging:
+  level: info              # debug | info | warn | error
+  format: text             # text | json

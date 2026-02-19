@@ -16,8 +16,16 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     OpeNSE.ai CLI / API                        │
-│              (Quick Query + Deep Analysis modes)            │
+│                  OpeNSE.ai Web UI (Next.js)                 │
+│  ┌─────────────────┬──────────────┬───────────────────────┐ │
+│  │  TradingView    │   Chat UI    │  FinanceQL Explorer   │ │
+│  │  Charts         │   (Agentic   │  (Prometheus-style    │ │
+│  │  (lightweight-  │    Chat +    │   Query Editor +      │ │
+│  │   charts)       │    HITL)     │   Result Viewer)      │ │
+│  └─────────────────┴──────────────┴───────────────────────┘ │
+├─────────────────────────────────────────────────────────────┤
+│                     OpeNSE.ai CLI / API                     │
+│              (Quick Query + Deep Analysis modes)             │
 ├─────────────────────────────────────────────────────────────┤
 │                    FinanceQL Engine                          │
 │           (PromQL-inspired Financial Query Language)         │
@@ -142,6 +150,101 @@ opense.ai/
 │   ├── server.go                   # HTTP/gRPC API server
 │   ├── handlers.go                 # REST endpoints for analysis
 │   └── middleware.go               # Auth, rate-limiting, logging
+├── web/                                # Next.js Web UI
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── next.config.ts
+│   ├── tailwind.config.ts
+│   ├── postcss.config.mjs
+│   ├── .env.local.example
+│   ├── public/
+│   │   └── favicon.ico
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── layout.tsx              # Root layout (sidebar nav, theme provider)
+│   │   │   ├── page.tsx                # Dashboard / home page
+│   │   │   ├── globals.css             # Global styles (Tailwind base)
+│   │   │   ├── chart/
+│   │   │   │   └── page.tsx            # TradingView chart page
+│   │   │   ├── chat/
+│   │   │   │   └── page.tsx            # Chat UI page
+│   │   │   ├── query/
+│   │   │   │   └── page.tsx            # FinanceQL Explorer page
+│   │   │   ├── portfolio/
+│   │   │   │   └── page.tsx            # Portfolio & holdings page
+│   │   │   ├── screener/
+│   │   │   │   └── page.tsx            # Stock screener page
+│   │   │   └── backtest/
+│   │   │       └── page.tsx            # Backtest results page
+│   │   ├── components/
+│   │   │   ├── ui/                     # Shared UI primitives (shadcn/ui)
+│   │   │   │   ├── button.tsx
+│   │   │   │   ├── input.tsx
+│   │   │   │   ├── card.tsx
+│   │   │   │   ├── table.tsx
+│   │   │   │   ├── tabs.tsx
+│   │   │   │   ├── badge.tsx
+│   │   │   │   ├── tooltip.tsx
+│   │   │   │   └── select.tsx
+│   │   │   ├── chart/
+│   │   │   │   ├── TradingViewChart.tsx # TradingView lightweight-charts wrapper
+│   │   │   │   ├── ChartToolbar.tsx     # Indicator selector, timeframe picker
+│   │   │   │   ├── IndicatorOverlay.tsx # RSI, MACD, BB overlay panels
+│   │   │   │   ├── VolumePane.tsx       # Volume sub-chart pane
+│   │   │   │   └── ChartLegend.tsx      # Price/indicator legend
+│   │   │   ├── chat/
+│   │   │   │   ├── ChatPanel.tsx        # Main chat container
+│   │   │   │   ├── MessageBubble.tsx    # User/agent message rendering
+│   │   │   │   ├── AgentBadge.tsx       # Agent role indicator (Fundamental, Technical…)
+│   │   │   │   ├── ToolCallCard.tsx     # Expandable tool call/result display
+│   │   │   │   ├── TradeConfirm.tsx     # Human-in-the-loop trade approval UI
+│   │   │   │   ├── ChatInput.tsx        # Message input with ticker autocomplete
+│   │   │   │   └── StreamingText.tsx    # Streaming LLM response renderer
+│   │   │   ├── financeql/
+│   │   │   │   ├── QueryEditor.tsx      # CodeMirror/Monaco FinanceQL editor
+│   │   │   │   ├── QueryHistory.tsx     # Recent queries sidebar
+│   │   │   │   ├── ResultTable.tsx      # Tabular result display
+│   │   │   │   ├── ResultChart.tsx      # Time-series result as chart
+│   │   │   │   ├── ResultScalar.tsx     # Single-value result with formatting
+│   │   │   │   ├── ExpressionTree.tsx   # Parsed AST visualization
+│   │   │   │   └── AlertManager.tsx     # Active alerts list & management
+│   │   │   ├── dashboard/
+│   │   │   │   ├── Watchlist.tsx        # Real-time watchlist with sparklines
+│   │   │   │   ├── MarketOverview.tsx   # Nifty 50, Bank Nifty, India VIX cards
+│   │   │   │   ├── FIIDIIBar.tsx        # FII/DII activity bar chart
+│   │   │   │   └── TopMovers.tsx        # Top gainers/losers
+│   │   │   ├── layout/
+│   │   │   │   ├── Sidebar.tsx          # Navigation sidebar
+│   │   │   │   ├── Header.tsx           # Top bar (market status, search)
+│   │   │   │   └── ThemeToggle.tsx      # Light/dark mode toggle
+│   │   │   └── common/
+│   │   │       ├── TickerSearch.tsx     # Global ticker search with autocomplete
+│   │   │       ├── IndianNumber.tsx     # ₹ lakhs/crores formatted display
+│   │   │       ├── SignalBadge.tsx      # BUY/SELL/NEUTRAL signal badge
+│   │   │       └── LoadingSkeleton.tsx  # Skeleton loaders
+│   │   ├── hooks/
+│   │   │   ├── useWebSocket.ts         # WebSocket connection hook
+│   │   │   ├── useFinanceQL.ts         # FinanceQL query execution hook
+│   │   │   ├── useChat.ts              # Chat session management hook
+│   │   │   ├── useMarketData.ts        # Real-time market data hook
+│   │   │   └── useTradingView.ts       # TradingView chart lifecycle hook
+│   │   ├── lib/
+│   │   │   ├── api.ts                  # API client (fetch wrapper for Go backend)
+│   │   │   ├── ws.ts                   # WebSocket client utilities
+│   │   │   ├── financeql-lang.ts       # FinanceQL syntax highlighting & autocomplete
+│   │   │   └── format.ts               # Indian number formatting (₹, lakhs, crores)
+│   │   ├── types/
+│   │   │   ├── stock.ts                # Stock, OHLCV, Quote types
+│   │   │   ├── analysis.ts             # AnalysisResult, Signal types
+│   │   │   ├── chat.ts                 # ChatMessage, AgentRole, ToolCall types
+│   │   │   ├── financeql.ts            # QueryResult, Scalar, Vector, Matrix types
+│   │   │   └── order.ts               # Order, Position, Holding types
+│   │   └── store/
+│   │       ├── useAppStore.ts          # Zustand global store
+│   │       ├── chatSlice.ts            # Chat state slice
+│   │       ├── marketSlice.ts          # Market data state slice
+│   │       └── querySlice.ts           # FinanceQL query state slice
+│   └── Dockerfile                      # Multi-stage Next.js Docker build
 ├── config/
 │   ├── config.example.yaml         # Example configuration
 │   └── agents.yaml                 # Agent roles, toolkits, hierarchy config
@@ -153,11 +256,13 @@ opense.ai/
 │   ├── agents.md                   # Agent roles and responsibilities
 │   ├── data-sources.md             # Data source documentation
 │   ├── financeql.md                # FinanceQL language reference & examples
-│   └── trading-safety.md           # Trading safety guardrails doc
+│   ├── trading-safety.md           # Trading safety guardrails doc
+│   └── web-ui.md                   # Web UI component reference & design system
 ├── go.mod
 ├── go.sum
 ├── Makefile
 ├── Dockerfile
+├── docker-compose.yaml             # Orchestrate Go backend + Next.js frontend
 ├── README.md
 └── plan.md                         # This file
 ```
@@ -576,9 +681,169 @@ alert(crossover(sma(INFY, 50), sma(INFY, 200)), "INFY golden cross")  # Crossove
 
 ---
 
-### Phase 11: Testing & Documentation (Week 12–13)
+### Phase 12: Web UI — Next.js Frontend (Week 12–14)
 
-#### Step 11.1 — Testing
+> **Stack**: Next.js 15 (App Router) + TypeScript + Tailwind CSS + shadcn/ui + Zustand
+
+#### Step 12.1 — Project Scaffolding & Layout
+- Initialize Next.js app in `web/`: `npx create-next-app@latest web --typescript --tailwind --app --src-dir`
+- Install shadcn/ui: `npx shadcn@latest init` + core components (button, input, card, table, tabs, badge, tooltip, select)
+- Set up Zustand store in `web/src/store/` with slices: `chatSlice`, `marketSlice`, `querySlice`
+- Create responsive layout:
+  - `Sidebar.tsx`: collapsible nav — Dashboard, Charts, Chat, FinanceQL, Portfolio, Screener, Backtest
+  - `Header.tsx`: market status indicator (open/closed), global ticker search, theme toggle
+  - `ThemeToggle.tsx`: light/dark mode with `next-themes`
+- API client (`web/src/lib/api.ts`): typed fetch wrapper pointing to Go backend (`/api/v1/*`)
+- WebSocket client (`web/src/lib/ws.ts`): reconnecting WS for streaming data
+- Environment config: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`
+
+#### Step 12.2 — TradingView Charts Component
+- Install `lightweight-charts` npm package (TradingView's open-source charting)
+- **`TradingViewChart.tsx`** — Core chart component:
+  - Candlestick series as primary view (OHLCV data from Go backend)
+  - Volume histogram as overlay or separate pane (`VolumePane.tsx`)
+  - Responsive container with auto-resize on window change
+  - Real-time data updates via WebSocket subscription
+  - Indian formatting: ₹ price axis, volume in lakhs/crores
+- **`ChartToolbar.tsx`** — Toolbar above chart:
+  - Timeframe selector: 1m, 5m, 15m, 1h, 1D, 1W, 1M
+  - Indicator toggles: SMA, EMA, Bollinger Bands, SuperTrend (rendered as line series overlays)
+  - Drawing tools: trendline, horizontal line, Fibonacci retracement
+  - Crosshair mode toggle, screenshot/export
+- **`IndicatorOverlay.tsx`** — Sub-chart indicator panels:
+  - RSI panel (with overbought/oversold zones at 70/30)
+  - MACD panel (MACD line, signal line, histogram)
+  - Separable panes below the main candlestick chart
+- **`ChartLegend.tsx`** — Floating legend showing OHLCV + indicator values at crosshair position
+- **`useTradingView.ts`** hook — Manages chart instance lifecycle, data fetching, series updates, and cleanup
+- Data flow: `useMarketData(ticker, timeframe)` → REST for historical + WS for live ticks → chart `update()`
+
+#### Step 12.3 — Chat UI Component
+- **`ChatPanel.tsx`** — Full chat interface:
+  - Scrollable message list with auto-scroll to latest
+  - Supports both single-agent (quick queries) and multi-agent (deep analysis) modes
+  - Mode toggle: "Quick" (single agent) vs "Deep Analysis" (multi-agent team)
+  - Agent activity indicator: shows which agents are currently working
+- **`MessageBubble.tsx`** — Message rendering:
+  - User messages: right-aligned, simple text
+  - Agent messages: left-aligned, with `AgentBadge.tsx` showing role (e.g., "Technical Analyst", "Risk Manager")
+  - Markdown rendering for agent responses (tables, lists, bold, code blocks)
+  - Inline charts: embed mini TradingView charts when agent references price data
+  - Indian number formatting: ₹ values auto-formatted with lakhs/crores
+- **`ToolCallCard.tsx`** — Expandable cards showing agent tool invocations:
+  - Collapsed: tool name + brief result summary (e.g., "GetQuote(RELIANCE) → ₹2,847.50")
+  - Expanded: full tool arguments (JSON) + complete result
+  - Visual distinction for different tool categories (data fetch, analysis, broker)
+- **`TradeConfirm.tsx`** — Human-in-the-loop trade approval:
+  - Modal/inline card when Trade Executor agent proposes an order
+  - Shows: ticker, action (BUY/SELL), quantity, price, order type, estimated cost
+  - Risk summary: position size % of capital, current exposure
+  - Approve / Reject / Modify buttons
+  - Timeout: auto-reject if no response in configurable time (default: 60s)
+- **`ChatInput.tsx`** — Message input:
+  - Ticker autocomplete (type `$` to trigger, e.g., `$RELI` → `RELIANCE`)
+  - Slash commands: `/analyze`, `/technical`, `/fno`, `/report`, `/trade`
+  - File/image attachment support (for chart screenshots)
+  - Send on Enter, Shift+Enter for multiline
+- **`StreamingText.tsx`** — Streams LLM responses token-by-token via WebSocket/SSE
+- **`useChat.ts`** hook — Manages chat session state, message history, WS connection, and agent events
+- Backend integration:
+  - `POST /api/v1/chat` for new messages
+  - `WS /api/v1/chat/stream` for streaming responses + agent events
+  - `POST /api/v1/trade/confirm` for trade approval/rejection
+
+#### Step 12.4 — FinanceQL Explorer (Prometheus-style UI)
+- **Modeled after Prometheus UI** — familiar query-execute-visualize workflow:
+
+- **`QueryEditor.tsx`** — FinanceQL query input:
+  - Monaco Editor (or CodeMirror 6) with custom FinanceQL language mode (`financeql-lang.ts`):
+    - Syntax highlighting: functions (blue), tickers (green), operators (red), numbers (orange), strings (yellow)
+    - Autocomplete: function names, ticker symbols (fetched from backend), keywords (`AND`, `OR`, `NOT`)
+    - Inline error markers from backend parse errors (red squiggles with tooltip)
+    - Bracket matching, auto-close for `()`, `[]`, `""`
+  - "Execute" button (or Ctrl+Enter) — sends query to `POST /api/v1/query`
+  - "Explain" button — sends to `POST /api/v1/query/explain` for human-readable breakdown
+  - "Natural Language" toggle — switch input mode to plain English, auto-translates to FinanceQL via `POST /api/v1/query/nl`
+  - Time range selector (like Prometheus): relative (last 30d, 90d, 1y) or absolute (date pickers)
+  - Evaluation step/resolution control for range queries
+
+- **`QueryHistory.tsx`** — Recent queries sidebar:
+  - Persisted to localStorage + backend
+  - Click to re-execute, star to bookmark
+  - Query duration + result type indicator (Scalar, Vector, Matrix)
+
+- **Result Display** — Auto-selects best visualization based on result type:
+  - **`ResultScalar.tsx`** — Single value display:
+    - Large formatted number (e.g., `₹2,847.50`, `RSI: 62.4`, `PE: 19.8`)
+    - Context badges: stock name, metric name, timestamp
+    - Sparkline mini-chart where applicable
+  - **`ResultTable.tsx`** — Tabular data (screening results, multi-stock queries):
+    - Sortable columns, pagination
+    - Inline sparklines for time-series columns
+    - Color-coded cells (green for positive, red for negative)
+    - Export to CSV
+  - **`ResultChart.tsx`** — Time-series visualization:
+    - Uses TradingView lightweight-charts for financial time-series
+    - Line chart for single series (e.g., `rsi(TCS, 14)[90d]`)
+    - Multi-line overlay for comparisons (e.g., `price(TCS)[90d]` vs `sma(TCS, 50)[90d]`)
+    - Stacked area for composition data
+    - Automatic axis formatting: ₹ for prices, % for ratios
+    - Zoom, pan, crosshair with data point tooltip
+  - **Tab layout** (like Prometheus): "Table" | "Graph" tabs to switch views
+
+- **`ExpressionTree.tsx`** — Parsed AST visualization:
+  - Collapsible tree view of the parsed FinanceQL expression
+  - Shows function calls, arguments, pipes, ranges, operators
+  - Useful for debugging complex queries
+
+- **`AlertManager.tsx`** — Active alerts management:
+  - List all active `alert()` expressions with status (pending/triggered/expired)
+  - Alert history with trigger timestamps
+  - Create/edit/delete alerts from UI (generates FinanceQL `alert()` expression)
+  - Browser push notifications on alert trigger
+
+- **`useFinanceQL.ts`** hook — Manages query execution, result caching, history, and polling for alerts
+
+#### Step 12.5 — Dashboard & Supporting Pages
+- **Dashboard** (`web/src/app/page.tsx`):
+  - `MarketOverview.tsx`: Nifty 50, Bank Nifty, India VIX live cards with change %
+  - `Watchlist.tsx`: user-configurable watchlist with real-time prices, sparklines, signals
+  - `FIIDIIBar.tsx`: today's FII/DII net buy/sell bar chart
+  - `TopMovers.tsx`: top gainers/losers from Nifty 50
+  - Quick FinanceQL query bar embedded at top
+- **Portfolio Page** (`web/src/app/portfolio/page.tsx`):
+  - Holdings table with current value, P&L, allocation %
+  - Position summary and margin utilization
+  - Performance chart (portfolio value over time vs Nifty 50)
+- **Screener Page** (`web/src/app/screener/page.tsx`):
+  - Pre-built FinanceQL screener queries (value picks, momentum, oversold)
+  - Custom filter builder that generates FinanceQL `screener()` expressions
+  - Results grid with drill-down to individual stock analysis
+- **Backtest Page** (`web/src/app/backtest/page.tsx`):
+  - Strategy selector, parameter config, date range
+  - Equity curve chart, drawdown chart, benchmark overlay
+  - Metrics dashboard: Sharpe, CAGR, max drawdown, win rate
+
+#### Step 12.6 — Real-time & WebSocket Integration
+- Go backend WebSocket endpoints:
+  - `WS /api/v1/ws/market` — live price ticks for subscribed tickers
+  - `WS /api/v1/ws/chat` — streaming chat responses + agent events
+  - `WS /api/v1/ws/alerts` — real-time alert notifications
+- `useWebSocket.ts` hook: auto-reconnect, heartbeat, subscription management
+- Optimistic UI updates for trade confirmations
+
+#### Step 12.7 — Build & Deployment
+- `web/Dockerfile`: multi-stage build (Node build → `nginx` or `next start`)
+- `docker-compose.yaml`: orchestrate Go backend + Next.js frontend + optional Redis for WS pub/sub
+- `Makefile` targets: `ui-dev` (Next dev server), `ui-build` (production build), `ui-test`, `ui-lint`
+- CORS configuration in Go backend for local dev (`localhost:3000` → `localhost:8080`)
+- Production: Next.js serves static + SSR, Go backend as API
+
+---
+
+### Phase 13: Testing & Documentation (Week 14–15)
+
+#### Step 13.1 — Testing
 - **Unit tests**: Every analysis function with known inputs/outputs (e.g., RSI of known price series)
 - **Integration tests**: Data source connectivity (NSE, YFinance, Screener)
 - **Agent tests**: Mock LLM responses, verify tool selection and orchestration
@@ -586,18 +851,27 @@ alert(crossover(sma(INFY, 50), sma(INFY, 200)), "INFY golden cross")  # Crossove
 - **Paper trading tests**: End-to-end order flow in paper mode
 - **FinanceQL tests**: Lexer/parser unit tests, evaluator tests with mock data, REPL integration tests, NL→FinanceQL accuracy tests
 - **Benchmark tests**: Performance benchmarks for data fetching and analysis
+- **Frontend tests**:
+  - Component tests: Vitest + React Testing Library for all components
+  - E2E tests: Playwright for critical flows (chart rendering, chat, FinanceQL query execution)
+  - Visual regression: Chromatic or Percy for UI consistency
+  - WebSocket mock tests: verify real-time update rendering
+  - Accessibility: axe-core audit for WCAG 2.1 AA compliance
 
-#### Step 11.2 — Documentation
+#### Step 13.2 — Documentation
 - `README.md`: Quick start, installation, usage examples
 - `docs/architecture.md`: System design, data flow diagrams
 - `docs/agents.md`: Agent roles, capabilities, prompt engineering
 - `docs/data-sources.md`: Available data sources, rate limits, caching
 - `docs/financeql.md`: FinanceQL language reference, syntax, built-in functions, examples, REPL usage
 - `docs/trading-safety.md`: Safety guardrails, risk management, disclaimers
+- `docs/web-ui.md`: Web UI component reference, design system, page layouts, WebSocket protocol
 
 ---
 
-## Key Dependencies (Go Modules)
+## Key Dependencies
+
+### Go Modules
 
 | Package | Purpose |
 |---------|---------|
@@ -617,6 +891,26 @@ alert(crossover(sma(INFY, 50), sma(INFY, 200)), "INFY golden cross")  # Crossove
 | `golang.org/x/sync/errgroup` | Concurrent data fetching |
 | `github.com/chzyer/readline` | REPL readline support (FinanceQL interactive mode) |
 | `github.com/alecthomas/participle` | Parser combinator (optional, for FinanceQL grammar) |
+
+### Frontend (npm — `web/`)
+
+| Package | Purpose |
+|---------|---------|
+| `next` (v15) | React framework with App Router, SSR, API routes |
+| `react` / `react-dom` (v19) | UI library |
+| `typescript` | Type safety across all frontend code |
+| `tailwindcss` | Utility-first CSS framework |
+| `@shadcn/ui` | Accessible, composable UI component primitives |
+| `lightweight-charts` | TradingView open-source financial charting library |
+| `@monaco-editor/react` | Monaco Editor for FinanceQL query editor with syntax highlighting |
+| `zustand` | Lightweight state management (global store with slices) |
+| `next-themes` | Dark/light theme toggle with system preference |
+| `react-markdown` + `remark-gfm` | Markdown rendering for agent chat responses |
+| `lucide-react` | Icon library (consistent with shadcn/ui) |
+| `date-fns` | Date formatting and manipulation (IST support) |
+| `vitest` + `@testing-library/react` | Unit & component testing |
+| `playwright` | End-to-end browser testing |
+| `class-variance-authority` + `clsx` | Conditional CSS class utilities (shadcn/ui dependency) |
 
 ---
 
@@ -672,6 +966,11 @@ financeql:
 | Human-in-the-loop | **Mandatory for live** | Every live order requires explicit confirmation |
 | Number formatting | **Indian system** | ₹ symbol, lakhs (1,00,000), crores (1,00,00,000) throughout |
 | Query language | **FinanceQL (PromQL-inspired)** | Composable, expressive DSL for financial data; familiar syntax for monitoring/DevOps users; enables NL→FinanceQL via LLM |
+| Web UI framework | **Next.js 15 + TypeScript** | App Router for file-based routing, SSR for SEO, React Server Components for performance, strong typing |
+| Charting library | **TradingView lightweight-charts** | Open-source, high-performance, purpose-built for financial data; candlestick, volume, overlays |
+| FinanceQL UI | **Prometheus-style Explorer** | Familiar query→execute→visualize pattern for DevOps/SRE users; Monaco Editor for rich editing experience |
+| Component library | **shadcn/ui + Tailwind CSS** | Copy-paste composable components, no runtime CSS-in-JS overhead, full customization |
+| State management | **Zustand** | Minimal boilerplate, TypeScript-native, slice pattern for modular state |
 | Config format | **YAML + env vars** | Human-readable config with secure env var override for secrets |
 
 ---
@@ -701,4 +1000,5 @@ financeql:
 | 9–10 | Backtest | Backtesting engine with strategies |
 | 10–11 | FinanceQL | Query language: lexer, parser, evaluator, REPL, LLM integration |
 | 11–12 | Interface | CLI + HTTP API |
-| 12–13 | Polish | Tests, docs, README, examples |
+| 12–14 | Web UI | Next.js frontend: TradingView charts, Chat UI, FinanceQL Explorer, Dashboard |
+| 14–15 | Polish | Tests (backend + frontend), docs, README, examples |

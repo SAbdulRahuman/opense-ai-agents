@@ -21,7 +21,7 @@ A collection of AI agent projects and research tools.
 
 ```bash
 # Clone with submodules
-git clone --recurse-submodules git@github.com:SAbdulRahuman/ai-agents.git
+git clone --recurse-submodules git@github.com:SAbdulRahuman/opense-ai-agents.git
 
 # If already cloned, init submodules
 git submodule update --init --recursive

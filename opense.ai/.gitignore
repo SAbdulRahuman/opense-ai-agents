@@ -1,0 +1,41 @@
+# OpeNSE.ai .gitignore
+
+# Go
+build/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+coverage.html
+
+# Vendor (we use go modules, not vendoring)
+# vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config (may contain secrets)
+config/config.yaml
+.env
+
+# Frontend
+web/node_modules/
+web/.next/
+web/out/
+web/.env.local
+
+# Misc
+*.log
+tmp/

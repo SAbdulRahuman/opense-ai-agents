@@ -1,0 +1,125 @@
+# OpeNSE.ai Agent Configuration
+# Defines agent roles, system prompts, tool assignments, and hierarchy
+
+orchestrator:
+  mode: auto                 # auto | single | multi
+  # auto: simple queries → single agent, complex → multi-agent team
+  complexity_threshold: 0.5  # LLM-determined complexity score threshold
+  timeout: 300               # max seconds for multi-agent analysis
+
+agents:
+  - name: fundamental_analyst
+    role: "Fundamental Analyst"
+    description: "Deep-dive into company financials, valuation, and growth prospects"
+    tools:
+      - get_financials
+      - get_ratios
+      - get_peer_comparison
+      - get_promoter_holding
+      - get_shareholding_pattern
+      - calculate_dcf
+      - calculate_graham_number
+    priority: 1
+
+  - name: technical_analyst
+    role: "Technical Analyst"
+    description: "Price action analysis, trend identification, entry/exit levels"
+    tools:
+      - get_historical_data
+      - calculate_rsi
+      - calculate_macd
+      - calculate_bollinger
+      - calculate_supertrend
+      - calculate_sma
+      - calculate_ema
+      - detect_patterns
+      - calculate_support_resistance
+      - generate_signals
+    priority: 1
+
+  - name: sentiment_analyst
+    role: "Sentiment Analyst"
+    description: "Market mood assessment from news, social media, and analyst opinions"
+    tools:
+      - get_stock_news
+      - get_market_news
+      - get_sector_news
+      - score_sentiment
+      - aggregate_sentiment
+    priority: 2
+
+  - name: fno_analyst
+    role: "F&O / Derivatives Analyst"
+    description: "Derivatives analysis, option strategies, OI interpretation"
+    tools:
+      - get_option_chain
+      - get_futures_data
+      - get_india_vix
+      - calculate_max_pain
+      - calculate_pcr
+      - detect_oi_buildup
+      - build_option_strategy
+    priority: 2
+
+  - name: risk_manager
+    role: "Risk Manager"
+    description: "Portfolio risk assessment, position sizing, stop-loss levels"
+    tools:
+      - get_india_vix
+      - get_fii_dii_data
+      - calculate_position_size
+      - calculate_var
+      - get_portfolio_exposure
+    priority: 3
+
+  - name: trade_executor
+    role: "Trade Executor"
+    description: "Execute trades with human confirmation (HITL)"
+    tools:
+      - place_order
+      - modify_order
+      - cancel_order
+      - get_positions
+      - get_holdings
+      - get_margins
+    requires_confirmation: true
+    priority: 4
+
+  - name: report_generator
+    role: "Report Generator"
+    description: "Compile comprehensive research reports with charts"
+    tools:
+      - generate_chart
+      - generate_pdf
+      - format_analysis
+    priority: 5
+
+# Multi-agent team composition for deep analysis
+teams:
+  full_analysis:
+    description: "Complete stock analysis with all dimensions"
+    agents:
+      - fundamental_analyst
+      - technical_analyst
+      - sentiment_analyst
+      - fno_analyst
+      - risk_manager
+      - report_generator
+    synthesis: true  # CIO agent synthesizes all inputs
+
+  quick_technical:
+    description: "Quick technical analysis only"
+    agents:
+      - technical_analyst
+
+  quick_fundamental:
+    description: "Quick fundamental analysis only"
+    agents:
+      - fundamental_analyst
+
+  trade_decision:
+    description: "Analysis leading to trade decision"
+    agents:
+      - technical_analyst
+      - risk_manager
+      - trade_executor
