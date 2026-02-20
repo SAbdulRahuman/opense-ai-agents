@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -30,6 +31,7 @@ import (
 	"github.com/seenimoa/openseai/internal/llm"
 	"github.com/seenimoa/openseai/pkg/models"
 	"github.com/seenimoa/openseai/pkg/utils"
+	"github.com/seenimoa/openseai/web"
 )
 
 // Server is the HTTP API server.
@@ -41,6 +43,7 @@ type Server struct {
 	broker   broker.Broker
 	riskMgr  *broker.RiskManager
 	wsHub    *WSHub
+	serveUI  bool // when true, serve the embedded web UI at /
 }
 
 // NewServer creates a configured API server with all routes and middleware.
@@ -80,10 +83,18 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		broker:  b,
 		riskMgr: rm,
 		wsHub:   NewWSHub(),
+		serveUI: true, // serve embedded web UI by default
 	}
 
 	srv.router = srv.buildRouter()
 	return srv, nil
+}
+
+// SetServeUI controls whether the embedded web UI is served.
+// Must be called before ListenAndServe.
+func (s *Server) SetServeUI(enabled bool) {
+	s.serveUI = enabled
+	s.router = s.buildRouter()
 }
 
 // Router returns the chi router for testing.
@@ -153,6 +164,9 @@ func (s *Server) buildRouter() chi.Router {
 
 	// API v1 routes
 	r.Route("/api/v1", func(r chi.Router) {
+		// Health (also available at /health)
+		r.Get("/health", s.handleHealth)
+
 		// Analysis
 		r.Post("/analyze", s.handleAnalyze)
 
@@ -180,7 +194,58 @@ func (s *Server) buildRouter() chi.Router {
 		r.Get("/ws", s.handleWebSocket)
 	})
 
+	// Serve embedded web UI (SPA with fallback to index.html)
+	if s.serveUI {
+		s.mountSPA(r, web.DistFS())
+	}
+
 	return r
+}
+
+// mountSPA serves the embedded Next.js static export as a single-page app.
+// Static assets (_next/*, favicon.ico, etc.) are served directly with caching.
+// All other paths fall back to index.html for client-side routing.
+func (s *Server) mountSPA(r chi.Router, distFS fs.FS) {
+	fileServer := http.FileServerFS(distFS)
+
+	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		rPath := strings.TrimPrefix(r.URL.Path, "/")
+		if rPath == "" {
+			rPath = "index.html"
+		}
+
+		// Try to open the requested file from the embedded FS
+		f, err := distFS.Open(rPath)
+		if err != nil {
+			// File not found — serve index.html for SPA client-side routing
+			serveIndexHTML(w, r, distFS)
+			return
+		}
+		f.Close()
+
+		// Set cache headers for immutable assets (_next/static/*)
+		if strings.HasPrefix(rPath, "_next/static/") {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		} else if rPath == "index.html" || strings.HasSuffix(rPath, ".html") {
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		}
+
+		fileServer.ServeHTTP(w, r)
+	})
+}
+
+// serveIndexHTML reads and serves the embedded index.html for SPA fallback.
+func serveIndexHTML(w http.ResponseWriter, r *http.Request, distFS fs.FS) {
+	data, err := fs.ReadFile(distFS, "index.html")
+	if err != nil {
+		http.Error(w, "web UI not available", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data) //nolint:errcheck
 }
 
 // ============================================================

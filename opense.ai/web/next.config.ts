@@ -1,28 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Proxy API requests to the Go backend in development
-  async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1"}/:path*`,
-      },
-    ];
-  },
+  // Static export for embedding into Go binary
+  output: "export",
 
-  // Allow images from external sources if needed
+  // Required for static export — no server-side image optimization
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "**",
-      },
-    ],
+    unoptimized: true,
   },
 
-  // Optimize production builds
-  output: "standalone",
+  // Trailing slash ensures each route gets its own directory with index.html
+  trailingSlash: true,
 };
 
 export default nextConfig;

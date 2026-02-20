@@ -1,4 +1,4 @@
-.PHONY: build test lint run clean fmt vet tidy dev ui-dev ui-build ui-test ui-lint docker
+.PHONY: build build-go build-web test lint run clean fmt vet tidy dev ui-dev ui-build ui-test ui-lint docker
 
 # Go variables
 BINARY_NAME=openseai
@@ -14,11 +14,20 @@ CMD_DIR=./cmd/openseai
 BUILD_DIR=./build
 WEB_DIR=./web
 
-## build: Build the openseai binary
-build:
+## build: Build web frontend + Go binary (full production build)
+build: build-web build-go
+
+## build-go: Build only the Go binary (assumes web/out/ exists)
+build-go:
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
 	$(GO) build $(GOFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) $(CMD_DIR)
+
+## build-web: Build Next.js static export into web/out/
+build-web:
+	@echo "Building web frontend..."
+	cd $(WEB_DIR) && npm run build
+	@echo "Web build output: $(WEB_DIR)/out/"
 
 ## run: Run the application
 run: build
@@ -64,6 +73,7 @@ tidy:
 ## clean: Remove build artifacts
 clean:
 	@rm -rf $(BUILD_DIR)
+	@rm -rf $(WEB_DIR)/out
 	@rm -f coverage.out coverage.html
 
 ## ui-dev: Start Next.js dev server

@@ -18,7 +18,11 @@ export class WebSocketClient {
   private isClosing = false;
 
   constructor(path: string = "") {
-    const base = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080/api/v1/ws";
+    const base =
+      process.env.NEXT_PUBLIC_WS_URL ||
+      (typeof window !== "undefined"
+        ? `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/api/v1/ws`
+        : "ws://localhost:8080/api/v1/ws");
     this.url = `${base}${path}`;
   }
 

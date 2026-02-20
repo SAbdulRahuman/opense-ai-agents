@@ -804,11 +804,14 @@ func init() {
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Start the HTTP API server",
+	Short: "Start the HTTP API server with embedded web UI",
 	Long: `Start the HTTP REST API server for programmatic access.
 
 The server exposes endpoints for analysis, quotes, backtesting, portfolio,
-chat, FinanceQL queries, and WebSocket streaming.`,
+chat, FinanceQL queries, and WebSocket streaming.
+
+By default, the embedded web UI is served at / and the API at /api/v1.
+Use --no-ui to disable the web UI and serve only the API.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		port, _ := cmd.Flags().GetInt("port")
 		if port == 0 {
@@ -818,14 +821,24 @@ chat, FinanceQL queries, and WebSocket streaming.`,
 		if host == "" {
 			host = cfg.API.Host
 		}
+		noUI, _ := cmd.Flags().GetBool("no-ui")
 
 		srv, err := api.NewServer(cfg)
 		if err != nil {
 			return fmt.Errorf("failed to create API server: %w", err)
 		}
 
+		if noUI {
+			srv.SetServeUI(false)
+		}
+
 		addr := fmt.Sprintf("%s:%d", host, port)
-		fmt.Printf("🌐 Starting OpeNSE.ai API server on %s\n", addr)
+		fmt.Printf("🌐 Starting OpeNSE.ai server on %s\n", addr)
+		if !noUI {
+			fmt.Printf("   Web UI:  http://%s/\n", resolveDisplayAddr(host, port))
+		}
+		fmt.Printf("   API:     http://%s/api/v1\n", resolveDisplayAddr(host, port))
+		fmt.Println()
 		fmt.Println("   Endpoints:")
 		fmt.Println("     POST /api/v1/analyze    — run analysis")
 		fmt.Println("     GET  /api/v1/quote/:t   — live quote")
@@ -844,9 +857,18 @@ chat, FinanceQL queries, and WebSocket streaming.`,
 	},
 }
 
+// resolveDisplayAddr returns a display-friendly address (replaces 0.0.0.0 with localhost).
+func resolveDisplayAddr(host string, port int) string {
+	if host == "" || host == "0.0.0.0" {
+		return fmt.Sprintf("localhost:%d", port)
+	}
+	return fmt.Sprintf("%s:%d", host, port)
+}
+
 func init() {
 	serveCmd.Flags().IntP("port", "p", 0, "server port (default from config)")
 	serveCmd.Flags().String("host", "", "server host (default from config)")
+	serveCmd.Flags().Bool("no-ui", false, "disable embedded web UI (API only)")
 }
 
 // --- Status Command ---
