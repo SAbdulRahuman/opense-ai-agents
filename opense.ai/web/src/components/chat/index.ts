@@ -1,4 +1,6 @@
 export { ChatPanel } from "./ChatPanel";
+export { ChatDrawer } from "./ChatDrawer";
+export { ChatToggle } from "./ChatToggle";
 export { MessageBubble } from "./MessageBubble";
 export { ChatInput } from "./ChatInput";
 export { AgentBadge } from "./AgentBadge";

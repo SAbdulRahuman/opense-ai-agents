@@ -12,6 +12,7 @@ import {
   Briefcase,
   Filter,
   FlaskConical,
+  Settings,
   PanelLeftClose,
   PanelLeft,
 } from "lucide-react";
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/portfolio", icon: Briefcase, label: "Portfolio" },
   { href: "/screener", icon: Filter, label: "Screener" },
   { href: "/backtest", icon: FlaskConical, label: "Backtest" },
+  { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
 export function Sidebar() {

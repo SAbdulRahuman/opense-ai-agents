@@ -11,6 +11,8 @@ export interface ChatSlice {
   mode: "quick" | "deep";
   activeAgents: string[];
   tradeProposal: TradeProposal | null;
+  isChatOpen: boolean;
+  chatDrawerSize: "normal" | "large";
 
   addMessage: (msg: ChatMessage) => void;
   updateMessage: (id: string, update: Partial<ChatMessage>) => void;
@@ -19,6 +21,8 @@ export interface ChatSlice {
   setMode: (mode: "quick" | "deep") => void;
   setActiveAgents: (agents: string[]) => void;
   setTradeProposal: (proposal: TradeProposal | null) => void;
+  setChatOpen: (open: boolean) => void;
+  setChatDrawerSize: (size: "normal" | "large") => void;
 }
 
 export const createChatSlice: StateCreator<ChatSlice> = (set) => ({
@@ -27,6 +31,8 @@ export const createChatSlice: StateCreator<ChatSlice> = (set) => ({
   mode: "quick",
   activeAgents: [],
   tradeProposal: null,
+  isChatOpen: false,
+  chatDrawerSize: "normal",
 
   addMessage: (msg) =>
     set((state) => ({ messages: [...state.messages, msg] })),
@@ -43,4 +49,6 @@ export const createChatSlice: StateCreator<ChatSlice> = (set) => ({
   setMode: (mode) => set({ mode }),
   setActiveAgents: (activeAgents) => set({ activeAgents }),
   setTradeProposal: (tradeProposal) => set({ tradeProposal }),
+  setChatOpen: (isChatOpen) => set({ isChatOpen }),
+  setChatDrawerSize: (chatDrawerSize) => set({ chatDrawerSize }),
 });

@@ -286,3 +286,91 @@ export interface Alert {
   triggeredAt?: string;
   value?: number;
 }
+
+// --- Configuration ---
+
+export interface LLMConfig {
+  primary: string;
+  ollama_url: string;
+  model: string;
+  fallback_model: string;
+  temperature: number;
+  max_tokens: number;
+}
+
+export interface ZerodhaConfig {
+  // Credentials excluded from API (json:"-"), managed via env/keys endpoint
+}
+
+export interface IBKRConfig {
+  host: string;
+  port: number;
+}
+
+export interface BrokerConfig {
+  provider: string;
+  zerodha: ZerodhaConfig;
+  ibkr: IBKRConfig;
+}
+
+export interface TradingConfig {
+  mode: string;
+  max_position_pct: number;
+  daily_loss_limit_pct: number;
+  max_open_positions: number;
+  require_confirmation: boolean;
+  confirm_timeout_sec: number;
+  initial_capital: number;
+}
+
+export interface AnalysisConfig {
+  cache_ttl: number;
+  concurrent_fetches: number;
+}
+
+export interface FinanceQLConfig {
+  cache_ttl: number;
+  max_range: string;
+  alert_check_interval: number;
+  repl_history_file: string;
+}
+
+export interface APIServerConfig {
+  host: string;
+  port: number;
+  cors_origins: string[];
+}
+
+export interface WebUIConfig {
+  url: string;
+}
+
+export interface LoggingConfig {
+  level: string;
+  format: string;
+}
+
+export interface AppConfig {
+  llm: LLMConfig;
+  broker: BrokerConfig;
+  trading: TradingConfig;
+  analysis: AnalysisConfig;
+  financeql: FinanceQLConfig;
+  api: APIServerConfig;
+  web: WebUIConfig;
+  logging: LoggingConfig;
+}
+
+export interface ConfigResponse {
+  config: AppConfig;
+  config_file: string;
+}
+
+export type APIKeySource = "env" | "config" | "none";
+
+export interface KeyStatus {
+  name: string;
+  source: APIKeySource;
+  is_set: boolean;
+  masked?: string;
+}

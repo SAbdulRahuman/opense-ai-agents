@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Search } from "lucide-react";
+import { Search, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip } from "@/components/ui/tooltip";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useStore } from "@/store";
 import { cn } from "@/lib/utils";
@@ -12,7 +14,7 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ ticker: string; name: string }>>([]);
   const [showResults, setShowResults] = useState(false);
-  const { isMarketOpen, setSelectedTicker } = useStore();
+  const { isMarketOpen, setSelectedTicker, isChatOpen, setChatOpen } = useStore();
 
   const handleSearch = useCallback(
     async (q: string) => {
@@ -94,6 +96,17 @@ export function Header() {
 
       {/* Right side actions */}
       <div className="flex items-center gap-2">
+        <Tooltip content="AI Chat (Ctrl+Shift+L)" side="bottom">
+          <Button
+            variant={isChatOpen ? "secondary" : "ghost"}
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={() => setChatOpen(!isChatOpen)}
+          >
+            <MessageSquare className="h-4 w-4" />
+            <span className="hidden sm:inline text-xs">Chat</span>
+          </Button>
+        </Tooltip>
         <ThemeToggle />
       </div>
     </header>

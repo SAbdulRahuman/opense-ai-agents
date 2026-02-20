@@ -9,93 +9,94 @@ import (
 	"strings"
 
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 // Config represents the complete application configuration.
 type Config struct {
-	LLM        LLMConfig        `mapstructure:"llm"        yaml:"llm"`
-	Broker     BrokerConfig     `mapstructure:"broker"     yaml:"broker"`
-	Trading    TradingConfig    `mapstructure:"trading"    yaml:"trading"`
-	Analysis   AnalysisConfig   `mapstructure:"analysis"   yaml:"analysis"`
-	FinanceQL  FinanceQLConfig  `mapstructure:"financeql"  yaml:"financeql"`
-	API        APIConfig        `mapstructure:"api"        yaml:"api"`
-	Web        WebConfig        `mapstructure:"web"        yaml:"web"`
-	Logging    LoggingConfig    `mapstructure:"logging"    yaml:"logging"`
+	LLM        LLMConfig        `mapstructure:"llm"        yaml:"llm"        json:"llm"`
+	Broker     BrokerConfig     `mapstructure:"broker"     yaml:"broker"     json:"broker"`
+	Trading    TradingConfig    `mapstructure:"trading"    yaml:"trading"    json:"trading"`
+	Analysis   AnalysisConfig   `mapstructure:"analysis"   yaml:"analysis"   json:"analysis"`
+	FinanceQL  FinanceQLConfig  `mapstructure:"financeql"  yaml:"financeql"  json:"financeql"`
+	API        APIConfig        `mapstructure:"api"        yaml:"api"        json:"api"`
+	Web        WebConfig        `mapstructure:"web"        yaml:"web"        json:"web"`
+	Logging    LoggingConfig    `mapstructure:"logging"    yaml:"logging"    json:"logging"`
 }
 
 // LLMConfig holds LLM provider configuration.
 type LLMConfig struct {
-	Primary      string `mapstructure:"primary"       yaml:"primary"`       // "openai", "ollama", "gemini", "anthropic"
-	OpenAIKey    string `mapstructure:"openai_key"     yaml:"openai_key"`
-	OllamaURL    string `mapstructure:"ollama_url"     yaml:"ollama_url"`
-	GeminiKey    string `mapstructure:"gemini_key"     yaml:"gemini_key"`
-	AnthropicKey string `mapstructure:"anthropic_key"  yaml:"anthropic_key"`
-	Model        string `mapstructure:"model"          yaml:"model"`
-	FallbackModel string `mapstructure:"fallback_model" yaml:"fallback_model"`
-	Temperature  float64 `mapstructure:"temperature"   yaml:"temperature"`
-	MaxTokens    int    `mapstructure:"max_tokens"     yaml:"max_tokens"`
+	Primary      string  `mapstructure:"primary"       yaml:"primary"       json:"primary"`       // "openai", "ollama", "gemini", "anthropic"
+	OpenAIKey    string  `mapstructure:"openai_key"     yaml:"openai_key"     json:"-"`             // excluded from JSON — use /config/keys
+	OllamaURL    string  `mapstructure:"ollama_url"     yaml:"ollama_url"     json:"ollama_url"`
+	GeminiKey    string  `mapstructure:"gemini_key"     yaml:"gemini_key"     json:"-"`
+	AnthropicKey string  `mapstructure:"anthropic_key"  yaml:"anthropic_key"  json:"-"`
+	Model        string  `mapstructure:"model"          yaml:"model"          json:"model"`
+	FallbackModel string `mapstructure:"fallback_model" yaml:"fallback_model" json:"fallback_model"`
+	Temperature  float64 `mapstructure:"temperature"   yaml:"temperature"   json:"temperature"`
+	MaxTokens    int     `mapstructure:"max_tokens"     yaml:"max_tokens"     json:"max_tokens"`
 }
 
 // BrokerConfig holds broker integration configuration.
 type BrokerConfig struct {
-	Provider string        `mapstructure:"provider" yaml:"provider"` // "paper", "zerodha", "ibkr"
-	Zerodha  ZerodhaConfig `mapstructure:"zerodha"  yaml:"zerodha"`
-	IBKR     IBKRConfig    `mapstructure:"ibkr"     yaml:"ibkr"`
+	Provider string        `mapstructure:"provider" yaml:"provider" json:"provider"` // "paper", "zerodha", "ibkr"
+	Zerodha  ZerodhaConfig `mapstructure:"zerodha"  yaml:"zerodha"  json:"zerodha"`
+	IBKR     IBKRConfig    `mapstructure:"ibkr"     yaml:"ibkr"     json:"ibkr"`
 }
 
 // ZerodhaConfig holds Zerodha Kite API credentials.
 type ZerodhaConfig struct {
-	APIKey    string `mapstructure:"api_key"    yaml:"api_key"`
-	APISecret string `mapstructure:"api_secret" yaml:"api_secret"`
+	APIKey    string `mapstructure:"api_key"    yaml:"api_key"    json:"-"`
+	APISecret string `mapstructure:"api_secret" yaml:"api_secret" json:"-"`
 }
 
 // IBKRConfig holds Interactive Brokers connection settings.
 type IBKRConfig struct {
-	Host string `mapstructure:"host" yaml:"host"`
-	Port int    `mapstructure:"port" yaml:"port"`
+	Host string `mapstructure:"host" yaml:"host" json:"host"`
+	Port int    `mapstructure:"port" yaml:"port" json:"port"`
 }
 
 // TradingConfig holds trading safety and risk management settings.
 type TradingConfig struct {
-	Mode                string  `mapstructure:"mode"                  yaml:"mode"`                  // "paper" or "live"
-	MaxPositionPct      float64 `mapstructure:"max_position_pct"      yaml:"max_position_pct"`
-	DailyLossLimitPct   float64 `mapstructure:"daily_loss_limit_pct"  yaml:"daily_loss_limit_pct"`
-	MaxOpenPositions    int     `mapstructure:"max_open_positions"    yaml:"max_open_positions"`
-	RequireConfirmation bool    `mapstructure:"require_confirmation"  yaml:"require_confirmation"`
-	ConfirmTimeoutSec   int     `mapstructure:"confirm_timeout_sec"   yaml:"confirm_timeout_sec"`
-	InitialCapital      float64 `mapstructure:"initial_capital"       yaml:"initial_capital"`
+	Mode                string  `mapstructure:"mode"                  yaml:"mode"                  json:"mode"`
+	MaxPositionPct      float64 `mapstructure:"max_position_pct"      yaml:"max_position_pct"      json:"max_position_pct"`
+	DailyLossLimitPct   float64 `mapstructure:"daily_loss_limit_pct"  yaml:"daily_loss_limit_pct"  json:"daily_loss_limit_pct"`
+	MaxOpenPositions    int     `mapstructure:"max_open_positions"    yaml:"max_open_positions"    json:"max_open_positions"`
+	RequireConfirmation bool    `mapstructure:"require_confirmation"  yaml:"require_confirmation"  json:"require_confirmation"`
+	ConfirmTimeoutSec   int     `mapstructure:"confirm_timeout_sec"   yaml:"confirm_timeout_sec"   json:"confirm_timeout_sec"`
+	InitialCapital      float64 `mapstructure:"initial_capital"       yaml:"initial_capital"       json:"initial_capital"`
 }
 
 // AnalysisConfig holds analysis engine settings.
 type AnalysisConfig struct {
-	CacheTTL         int `mapstructure:"cache_ttl"          yaml:"cache_ttl"`          // seconds
-	ConcurrentFetches int `mapstructure:"concurrent_fetches" yaml:"concurrent_fetches"`
+	CacheTTL         int `mapstructure:"cache_ttl"          yaml:"cache_ttl"          json:"cache_ttl"`
+	ConcurrentFetches int `mapstructure:"concurrent_fetches" yaml:"concurrent_fetches" json:"concurrent_fetches"`
 }
 
 // FinanceQLConfig holds FinanceQL query language settings.
 type FinanceQLConfig struct {
-	CacheTTL            int    `mapstructure:"cache_ttl"              yaml:"cache_ttl"`              // seconds
-	MaxRange            string `mapstructure:"max_range"              yaml:"max_range"`              // e.g., "365d"
-	AlertCheckInterval  int    `mapstructure:"alert_check_interval"   yaml:"alert_check_interval"`   // seconds
-	REPLHistoryFile     string `mapstructure:"repl_history_file"      yaml:"repl_history_file"`
+	CacheTTL            int    `mapstructure:"cache_ttl"              yaml:"cache_ttl"              json:"cache_ttl"`
+	MaxRange            string `mapstructure:"max_range"              yaml:"max_range"              json:"max_range"`
+	AlertCheckInterval  int    `mapstructure:"alert_check_interval"   yaml:"alert_check_interval"   json:"alert_check_interval"`
+	REPLHistoryFile     string `mapstructure:"repl_history_file"      yaml:"repl_history_file"      json:"repl_history_file"`
 }
 
 // APIConfig holds HTTP/gRPC API server settings.
 type APIConfig struct {
-	Host        string   `mapstructure:"host"         yaml:"host"`
-	Port        int      `mapstructure:"port"         yaml:"port"`
-	CORSOrigins []string `mapstructure:"cors_origins"  yaml:"cors_origins"`
+	Host        string   `mapstructure:"host"         yaml:"host"         json:"host"`
+	Port        int      `mapstructure:"port"         yaml:"port"         json:"port"`
+	CORSOrigins []string `mapstructure:"cors_origins"  yaml:"cors_origins"  json:"cors_origins"`
 }
 
 // WebConfig holds Next.js frontend configuration.
 type WebConfig struct {
-	URL string `mapstructure:"url" yaml:"url"` // e.g., "http://localhost:3000"
+	URL string `mapstructure:"url" yaml:"url" json:"url"` // e.g., "http://localhost:3000"
 }
 
 // LoggingConfig holds logging settings.
 type LoggingConfig struct {
-	Level  string `mapstructure:"level"  yaml:"level"`  // "debug", "info", "warn", "error"
-	Format string `mapstructure:"format" yaml:"format"` // "text" or "json"
+	Level  string `mapstructure:"level"  yaml:"level"  json:"level"`  // "debug", "info", "warn", "error"
+	Format string `mapstructure:"format" yaml:"format" json:"format"` // "text" or "json"
 }
 
 // Load reads the configuration from file and environment variables.
@@ -229,6 +230,44 @@ func overrideFromEnv(cfg *Config) {
 	if key := os.Getenv("OPENSEAI_BROKER_ZERODHA_API_SECRET"); key != "" {
 		cfg.Broker.Zerodha.APISecret = key
 	}
+}
+
+// SaveToFile writes the current configuration to a YAML file.
+// If path is empty, it writes to ./config/config.yaml.
+func SaveToFile(cfg *Config, path string) error {
+	if path == "" {
+		path = filepath.Join(".", "config", "config.yaml")
+	}
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("cannot create config directory %s: %w", dir, err)
+	}
+
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return fmt.Errorf("failed to write config file %s: %w", path, err)
+	}
+	return nil
+}
+
+// ConfigFilePath returns the path to the active config file (if any).
+// Returns empty string if no config file was found.
+func ConfigFilePath() string {
+	v := viper.New()
+	v.SetConfigName("config")
+	v.SetConfigType("yaml")
+	v.AddConfigPath("./config")
+	v.AddConfigPath(filepath.Join(homeDir(), ".openseai"))
+	v.AddConfigPath("/etc/openseai")
+
+	if err := v.ReadInConfig(); err != nil {
+		return ""
+	}
+	return v.ConfigFileUsed()
 }
 
 // homeDir returns the user's home directory.

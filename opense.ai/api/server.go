@@ -190,6 +190,11 @@ func (s *Server) buildRouter() chi.Router {
 		// Alerts
 		r.Get("/alerts", s.handleAlerts)
 
+		// Configuration
+		r.Get("/config", s.handleGetConfig)
+		r.Put("/config", s.handleUpdateConfig)
+		r.Get("/config/keys", s.handleGetConfigKeys)
+
 		// WebSocket
 		r.Get("/ws", s.handleWebSocket)
 	})

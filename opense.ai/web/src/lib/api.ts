@@ -16,6 +16,9 @@ import type {
   MarketIndex,
   TopMover,
   FIIDIIData,
+  AppConfig,
+  ConfigResponse,
+  KeyStatus,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -194,4 +197,21 @@ export async function runScreener(query: string): Promise<ScreenerResult[]> {
 
 export async function searchTickers(q: string): Promise<Array<{ ticker: string; name: string }>> {
   return request(`/search/tickers?q=${encodeURIComponent(q)}`);
+}
+
+// --- Configuration ---
+
+export async function getConfig(): Promise<ConfigResponse> {
+  return request("/config");
+}
+
+export async function updateConfig(config: Partial<AppConfig>): Promise<ConfigResponse> {
+  return request("/config", {
+    method: "PUT",
+    body: JSON.stringify(config),
+  });
+}
+
+export async function getConfigKeys(): Promise<KeyStatus[]> {
+  return request("/config/keys");
 }
