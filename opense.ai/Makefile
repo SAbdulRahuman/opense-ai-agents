@@ -94,6 +94,26 @@ docker-up:
 docker-down:
 	docker compose down
 
+## bench: Run Go benchmarks
+bench:
+	$(GO) test -bench=. -benchmem ./internal/analysis/technical/... ./internal/financeql/...
+
+## e2e: Run Playwright E2E tests
+e2e:
+	cd $(WEB_DIR) && npx playwright test
+
+## e2e-headed: Run E2E tests in headed mode
+e2e-headed:
+	cd $(WEB_DIR) && npx playwright test --headed
+
+## setup: Run development environment setup
+setup:
+	bash scripts/setup.sh
+
+## nse-test: Run NSE data source smoke tests
+nse-test:
+	bash scripts/test_nse.sh
+
 ## help: Show this help
 help:
 	@echo "OpeNSE.ai — Agentic AI for NSE Stock Analysis & Trading"
