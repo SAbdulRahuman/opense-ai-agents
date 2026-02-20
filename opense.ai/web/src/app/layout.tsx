@@ -33,17 +33,17 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <ClientShell>
-            <div className="flex h-screen overflow-hidden">
-              <Sidebar />
-              <div className="flex flex-1 flex-col overflow-hidden">
-                <Header />
+          <div className="flex h-screen overflow-hidden">
+            <Sidebar />
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <Header />
+              <ClientShell>
                 <main className="flex-1 overflow-auto p-4">
                   {children}
                 </main>
-              </div>
+              </ClientShell>
             </div>
-          </ClientShell>
+          </div>
         </ThemeProvider>
       </body>
     </html>
