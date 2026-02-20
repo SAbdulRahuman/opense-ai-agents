@@ -1,20 +1,20 @@
 [submodule "FinRobot"]
-	path = FinRobot
+	path = agents/FinRobot
 	url = git@github.com:SAbdulRahuman/FinRobot.git
 	branch = master
 [submodule "gemini-cli"]
-	path = gemini-cli
+	path = agents/gemini-cli
 	url = git@github.com:SAbdulRahuman/gemini-cli.git
 	branch = main
 [submodule "picoclaw"]
-	path = picoclaw
+	path = agents/picoclaw
 	url = git@github.com:SAbdulRahuman/picoclaw.git
 	branch = main
 [submodule "qwen-code"]
-	path = qwen-code
+	path = agents/qwen-code
 	url = git@github.com:SAbdulRahuman/qwen-code.git
 	branch = main
 [submodule "openclaw"]
-	path = openclaw
+	path = agents/openclaw
 	url = git@github.com:SAbdulRahuman/openclaw.git
 	branch = main
