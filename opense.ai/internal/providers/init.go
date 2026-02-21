@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/seenimoa/openseai/internal/provider"
+	"github.com/seenimoa/openseai/internal/providers/cboe"
 	"github.com/seenimoa/openseai/internal/providers/fmp"
 	"github.com/seenimoa/openseai/internal/providers/fred"
 	"github.com/seenimoa/openseai/internal/providers/sec"
@@ -59,6 +60,15 @@ func RegisterAllTo(reg *provider.Registry) error {
 		if err := reg.Register(fp); err != nil {
 			return err
 		}
+	}
+
+	// --- CBOE (free, no API key) ---
+	cp := cboe.New()
+	if err := cp.Init(nil); err != nil {
+		return err
+	}
+	if err := reg.Register(cp); err != nil {
+		return err
 	}
 
 	return nil
