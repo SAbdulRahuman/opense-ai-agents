@@ -7,8 +7,11 @@ import (
 
 	"github.com/seenimoa/openseai/internal/provider"
 	"github.com/seenimoa/openseai/internal/providers/cboe"
+	"github.com/seenimoa/openseai/internal/providers/federalreserve"
 	"github.com/seenimoa/openseai/internal/providers/fmp"
 	"github.com/seenimoa/openseai/internal/providers/fred"
+	"github.com/seenimoa/openseai/internal/providers/imf"
+	"github.com/seenimoa/openseai/internal/providers/oecd"
 	"github.com/seenimoa/openseai/internal/providers/sec"
 	"github.com/seenimoa/openseai/internal/providers/yfinance"
 )
@@ -68,6 +71,33 @@ func RegisterAllTo(reg *provider.Registry) error {
 		return err
 	}
 	if err := reg.Register(cp); err != nil {
+		return err
+	}
+
+	// --- Federal Reserve (free, no API key) ---
+	frp := federalreserve.New()
+	if err := frp.Init(nil); err != nil {
+		return err
+	}
+	if err := reg.Register(frp); err != nil {
+		return err
+	}
+
+	// --- OECD (free, no API key) ---
+	op := oecd.New()
+	if err := op.Init(nil); err != nil {
+		return err
+	}
+	if err := reg.Register(op); err != nil {
+		return err
+	}
+
+	// --- IMF (free, no API key) ---
+	ip := imf.New()
+	if err := ip.Init(nil); err != nil {
+		return err
+	}
+	if err := reg.Register(ip); err != nil {
 		return err
 	}
 
