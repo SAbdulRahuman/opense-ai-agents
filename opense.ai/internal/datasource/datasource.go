@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"time"
 
 	"github.com/seenimoa/openseai/internal/infra"
@@ -47,61 +46,21 @@ var ErrTickerNotFound = fmt.Errorf("ticker not found")
 // ErrRateLimited is returned when a source rate-limits the request.
 var ErrRateLimited = fmt.Errorf("rate limited by data source")
 
-// ErrHTTP wraps an HTTP error with status code.
-type ErrHTTP struct {
-	StatusCode int
-	Status     string
-	Body       string
-}
-
-func (e *ErrHTTP) Error() string {
-	return fmt.Sprintf("HTTP %d %s: %s", e.StatusCode, e.Status, e.Body)
-}
+// ErrHTTP is an alias for infra.ErrHTTP.
+type ErrHTTP = infra.ErrHTTP
 
 // --- Shared HTTP client helpers ---
 
 // DefaultUserAgent is the user agent string used for HTTP requests.
-const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+const DefaultUserAgent = infra.DefaultUserAgent
 
 // HTTPClient is a pre-configured HTTP client with reasonable timeouts.
-var HTTPClient = &http.Client{
-	Timeout: 30 * time.Second,
-}
+var HTTPClient = infra.HTTPClient
 
 // doGet performs a GET request with the given URL and headers, returning the response body.
 // The caller is responsible for closing the returned ReadCloser.
 func doGet(ctx context.Context, url string, headers map[string]string) (io.ReadCloser, int, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, 0, fmt.Errorf("create request: %w", err)
-	}
-
-	// Set default headers.
-	req.Header.Set("User-Agent", DefaultUserAgent)
-	req.Header.Set("Accept", "application/json, text/html, */*")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
-
-	// Override/add custom headers.
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-
-	resp, err := HTTPClient.Do(req)
-	if err != nil {
-		return nil, 0, fmt.Errorf("HTTP GET %s: %w", url, err)
-	}
-
-	if resp.StatusCode >= 400 {
-		defer resp.Body.Close()
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
-		return nil, resp.StatusCode, &ErrHTTP{
-			StatusCode: resp.StatusCode,
-			Status:     resp.Status,
-			Body:       string(body),
-		}
-	}
-
-	return resp.Body, resp.StatusCode, nil
+	return infra.DoGet(ctx, url, headers)
 }
 
 // --- Simple in-memory cache (delegated to infra package) ---
