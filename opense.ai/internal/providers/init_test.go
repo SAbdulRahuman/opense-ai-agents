@@ -21,13 +21,29 @@ func TestRegisterAllTo(t *testing.T) {
 		t.Error("wrong yfinance provider name")
 	}
 
+	// SEC should always be registered (no key needed).
+	secProv, err := reg.Get("sec")
+	if err != nil {
+		t.Fatalf("SEC not registered: %v", err)
+	}
+	if secProv.Info().Name != "sec" {
+		t.Error("wrong sec provider name")
+	}
+
 	// FMP should only be registered if FMP_API_KEY is set.
-	// We don't set it here, so it should NOT be registered.
 	_, err = reg.Get("fmp")
 	if err == nil {
 		t.Log("FMP registered (FMP_API_KEY env var is set)")
 	} else {
 		t.Log("FMP not registered (no FMP_API_KEY)")
+	}
+
+	// FRED should only be registered if FRED_API_KEY is set.
+	_, err = reg.Get("fred")
+	if err == nil {
+		t.Log("FRED registered (FRED_API_KEY env var is set)")
+	} else {
+		t.Log("FRED not registered (no FRED_API_KEY)")
 	}
 }
 
@@ -53,6 +69,11 @@ func TestRegisterAllToWithModelCoverage(t *testing.T) {
 		provider.ModelCryptoHistorical,
 		provider.ModelCurrencyHistorical,
 		provider.ModelCompanyNews,
+		// SEC models (always available)
+		provider.ModelCompanyFilings,
+		provider.ModelSecFiling,
+		provider.ModelInsiderTrading,
+		provider.ModelCikMap,
 	}
 
 	coverage := reg.ModelCoverage()
