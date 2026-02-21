@@ -41,4 +41,4 @@ web/.env.local
 tmp/
 
 # Tasks
-tasks/
+oss/
