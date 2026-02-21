@@ -19,6 +19,11 @@ import type {
   AppConfig,
   ConfigResponse,
   KeyStatus,
+  Order,
+  OrderRequest,
+  OrderResponse,
+  Position,
+  Margins,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
@@ -214,4 +219,44 @@ export async function updateConfig(config: Partial<AppConfig>): Promise<ConfigRe
 
 export async function getConfigKeys(): Promise<KeyStatus[]> {
   return request("/config/keys");
+}
+
+// --- Orders ---
+
+export async function getOrders(): Promise<Order[]> {
+  return request("/orders");
+}
+
+export async function getOrderById(id: string): Promise<Order> {
+  return request(`/orders/${encodeURIComponent(id)}`);
+}
+
+export async function placeOrder(req: OrderRequest): Promise<OrderResponse> {
+  return request("/orders", {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+export async function modifyOrder(id: string, req: OrderRequest): Promise<OrderResponse> {
+  return request(`/orders/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(req),
+  });
+}
+
+export async function cancelOrder(id: string): Promise<void> {
+  return request(`/orders/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+// --- Positions ---
+
+export async function getPositions(): Promise<Position[]> {
+  return request("/positions");
+}
+
+// --- Funds / Margins ---
+
+export async function getFunds(): Promise<Margins> {
+  return request("/funds");
 }

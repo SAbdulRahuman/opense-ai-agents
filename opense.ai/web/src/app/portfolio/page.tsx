@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Wallet,
   TrendingUp,
@@ -13,22 +13,40 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPortfolio } from "@/lib/api";
 import { formatPrice, formatPercent, formatIndianNumber, cn } from "@/lib/utils";
-import type { Holding, PortfolioSummary } from "@/lib/types";
+import type { Holding, PortfolioSummary, PortfolioOverview } from "@/lib/types";
 
 export default function PortfolioPage() {
   const [holdings, setHoldings] = useState<Holding[]>([]);
-  const [summary, setSummary] = useState<PortfolioSummary | null>(null);
+  const [portfolio, setPortfolio] = useState<PortfolioSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getPortfolio()
       .then((data) => {
-        setHoldings(data.holdings);
-        setSummary(data);
+        setHoldings(data.holdings ?? []);
+        setPortfolio(data);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const summary: PortfolioOverview | null = useMemo(() => {
+    if (!holdings.length) return null;
+    const totalInvested = holdings.reduce((s, h) => s + h.avgPrice * h.quantity, 0);
+    const totalValue = holdings.reduce((s, h) => s + h.value, 0);
+    const totalPnl = holdings.reduce((s, h) => s + h.pnl, 0);
+    const dayPnl = holdings.reduce((s, h) => s + (h.dayChange ?? 0) * h.quantity, 0);
+    return {
+      totalInvested,
+      totalValue,
+      totalPnl,
+      totalPnlPercent: totalInvested ? (totalPnl / totalInvested) * 100 : 0,
+      dayPnl,
+      dayPnlPercent: totalValue ? (dayPnl / totalValue) * 100 : 0,
+      marginUsed: portfolio?.margins?.used_margin ?? 0,
+      marginAvailable: portfolio?.margins?.available_margin ?? 0,
+    };
+  }, [holdings, portfolio]);
 
   if (loading) {
     return (

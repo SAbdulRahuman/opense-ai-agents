@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
-import { Star, Plus, X, RefreshCw } from "lucide-react";
+import { Star, Plus, X, RefreshCw, ShoppingCart, TrendingDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,24 @@ import { getQuote } from "@/lib/api";
 import { formatPrice, formatPercent, cn } from "@/lib/utils";
 import type { Quote } from "@/lib/types";
 
+const WATCHLIST_TABS = [1, 2, 3, 4, 5];
+
 export function Watchlist() {
-  const { watchlist, setWatchlist, quotes, setQuote, setSelectedTicker } = useStore();
+  const {
+    watchlist,
+    setWatchlist,
+    quotes,
+    setQuote,
+    setSelectedTicker,
+    activeWatchlistTab,
+    setActiveWatchlistTab,
+    openOrderWindow,
+  } = useStore();
   const [quotesData, setQuotesData] = useState<Record<string, Quote>>({});
   const [loading, setLoading] = useState(true);
   const [addMode, setAddMode] = useState(false);
   const [newTicker, setNewTicker] = useState("");
+  const [hoveredTicker, setHoveredTicker] = useState<string | null>(null);
 
   const fetchQuotes = useCallback(async () => {
     try {
@@ -74,6 +86,25 @@ export function Watchlist() {
             </Button>
           </div>
         </div>
+
+        {/* Watchlist Tabs */}
+        <div className="flex gap-1 mt-2">
+          {WATCHLIST_TABS.map((tab) => (
+            <button
+              key={tab}
+              className={cn(
+                "h-7 w-7 rounded text-xs font-medium transition-colors",
+                activeWatchlistTab === tab - 1
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-accent",
+              )}
+              onClick={() => setActiveWatchlistTab(tab - 1)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
         {addMode && (
           <div className="flex items-center gap-2 mt-2">
             <Input
@@ -123,17 +154,25 @@ export function Watchlist() {
                 );
               }
               const isPositive = q.change >= 0;
+              const isHovered = hoveredTicker === ticker;
               return (
-                <button
+                <div
                   key={ticker}
-                  className="flex items-center justify-between w-full px-5 py-3 hover:bg-muted/50 transition-colors text-left"
-                  onClick={() => setSelectedTicker(ticker)}
+                  className="relative flex items-center justify-between w-full px-5 py-3 hover:bg-muted/50 transition-colors text-left"
+                  onMouseEnter={() => setHoveredTicker(ticker)}
+                  onMouseLeave={() => setHoveredTicker(null)}
                 >
-                  <div>
-                    <div className="font-mono text-sm font-medium">{ticker}</div>
-                    <div className="text-xs text-muted-foreground">{q.name}</div>
-                  </div>
-                  <div className="flex items-center gap-3">
+                  <button
+                    className="flex-1 text-left"
+                    onClick={() => setSelectedTicker(ticker)}
+                  >
+                    <div>
+                      <div className="font-mono text-sm font-medium">{ticker}</div>
+                      <div className="text-xs text-muted-foreground">{q.name}</div>
+                    </div>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Price info */}
                     <div className="text-right">
                       <div className="text-sm font-medium tabular-nums">
                         {formatPrice(q.price)}
@@ -150,19 +189,47 @@ export function Watchlist() {
                         {formatPercent(q.changePercent)}
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeTicker(ticker);
-                      }}
-                    >
-                      <X size={12} />
-                    </Button>
+
+                    {/* Action buttons on hover */}
+                    {isHovered && (
+                      <div className="flex gap-1 ml-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 px-2 text-xs text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openOrderWindow(ticker, "BUY");
+                          }}
+                        >
+                          B
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 px-2 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openOrderWindow(ticker, "SELL");
+                          }}
+                        >
+                          S
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeTicker(ticker);
+                          }}
+                        >
+                          <X size={12} />
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>

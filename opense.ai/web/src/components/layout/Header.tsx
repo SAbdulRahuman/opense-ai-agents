@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Search, MessageSquare } from "lucide-react";
+import Link from "next/link";
+import { Search, MessageSquare, User, Settings, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ ticker: string; name: string }>>([]);
   const [showResults, setShowResults] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const { isMarketOpen, setSelectedTicker, isChatOpen, setChatOpen } = useStore();
 
   const handleSearch = useCallback(
@@ -108,6 +110,35 @@ export function Header() {
           </Button>
         </Tooltip>
         <ThemeToggle />
+
+        {/* Profile Dropdown */}
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 rounded-full p-0"
+            onClick={() => setShowProfile(!showProfile)}
+            onBlur={() => setTimeout(() => setShowProfile(false), 200)}
+          >
+            <User className="h-4 w-4" />
+          </Button>
+          {showProfile && (
+            <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border bg-popover p-1 shadow-md">
+              <div className="px-3 py-2 border-b mb-1">
+                <p className="text-sm font-medium">OpeNSE.ai</p>
+                <p className="text-xs text-muted-foreground">Trading Account</p>
+              </div>
+              <Link
+                href="/settings"
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent"
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                <Settings className="h-3.5 w-3.5" />
+                Settings
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

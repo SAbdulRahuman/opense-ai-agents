@@ -174,30 +174,117 @@ export interface QueryHistoryEntry {
   starred: boolean;
 }
 
+// --- Trading / Orders ---
+
+export type OrderSide = "BUY" | "SELL";
+export type OrderType = "MARKET" | "LIMIT" | "SL" | "SL-M";
+export type OrderProduct = "CNC" | "MIS" | "NRML";
+export type OrderStatus = "PENDING" | "OPEN" | "COMPLETE" | "CANCELLED" | "REJECTED";
+
+export interface OrderRequest {
+  ticker: string;
+  exchange: string; // "NSE" | "BSE" | "NFO"
+  side: OrderSide;
+  order_type: OrderType;
+  product: OrderProduct;
+  quantity: number;
+  price?: number;
+  trigger_price?: number;
+  stop_loss?: number;
+  target?: number;
+  tag?: string;
+}
+
+export interface OrderResponse {
+  order_id: string;
+  status: string;
+  message?: string;
+}
+
+export interface Order {
+  order_id: string;
+  ticker: string;
+  exchange: string;
+  side: OrderSide;
+  order_type: OrderType;
+  product: OrderProduct;
+  quantity: number;
+  filled_qty: number;
+  pending_qty: number;
+  price: number;
+  avg_price: number;
+  trigger_price?: number;
+  status: OrderStatus;
+  status_message?: string;
+  placed_at: string;
+  updated_at: string;
+  tag?: string;
+}
+
+export interface Position {
+  ticker: string;
+  exchange: string;
+  product: OrderProduct;
+  quantity: number; // positive = long, negative = short
+  avg_price: number;
+  ltp: number;
+  pnl: number;
+  pnl_pct: number;
+  day_pnl: number;
+  value: number;
+  multiplier: number;
+}
+
+export interface Margins {
+  available_cash: number;
+  used_margin: number;
+  available_margin: number;
+  collateral: number;
+  opening_balance: number;
+}
+
 // --- Portfolio ---
 
 export interface Holding {
   ticker: string;
   name: string;
+  exchange: string;
+  isin: string;
   quantity: number;
   avgPrice: number;
   currentPrice: number;
   value: number;
   pnl: number;
   pnlPercent: number;
+  dayChange: number;
+  dayChangePct: number;
   allocationPercent: number;
 }
 
 export interface PortfolioSummary {
+  margins: Margins;
+  positions: Position[];
+  holdings: Holding[];
+  orders: Order[];
+}
+
+export interface PortfolioOverview {
   totalValue: number;
   totalInvested: number;
   totalPnl: number;
   totalPnlPercent: number;
   dayPnl: number;
   dayPnlPercent: number;
-  holdings: Holding[];
   marginUsed: number;
   marginAvailable: number;
+}
+
+// --- Watchlist Groups ---
+
+export interface WatchlistGroup {
+  id: number;
+  name: string;
+  tickers: string[];
 }
 
 // --- Backtest ---

@@ -6,6 +6,7 @@
 "use client";
 
 import { ChatDrawer } from "@/components/chat";
+import { OrderWindow } from "@/components/trading";
 
 export function ClientShell({ children }: { children: React.ReactNode }) {
   return (
@@ -14,6 +15,8 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
       <div className="flex-1 overflow-auto">{children}</div>
       {/* Inline chat panel */}
       <ChatDrawer />
+      {/* Draggable order entry window (rendered when open) */}
+      <OrderWindow />
     </div>
   );
 }

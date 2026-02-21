@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -189,14 +190,47 @@ func (s *Server) buildRouter() chi.Router {
 
 		// Alerts
 		r.Get("/alerts", s.handleAlerts)
+		r.Post("/alerts", s.handleCreateAlert)
+		r.Delete("/alerts/{id}", s.handleDeleteAlert)
+
+		// Orders
+		r.Get("/orders", s.handleGetOrders)
+		r.Get("/orders/{id}", s.handleGetOrderByID)
+		r.Post("/orders", s.handlePlaceOrder)
+		r.Put("/orders/{id}", s.handleModifyOrder)
+		r.Delete("/orders/{id}", s.handleCancelOrder)
+
+		// Positions
+		r.Get("/positions", s.handleGetPositions)
+
+		// Funds / Margins
+		r.Get("/funds", s.handleGetFunds)
+
+		// Market data
+		r.Get("/ohlcv/{ticker}", s.handleOHLCV)
+		r.Get("/market/indices", s.handleMarketIndices)
+		r.Get("/market/movers", s.handleTopMovers)
+		r.Get("/market/fiidii", s.handleFIIDII)
+
+		// Screener
+		r.Post("/screener", s.handleScreener)
+
+		// Ticker search
+		r.Get("/search/tickers", s.handleSearchTickers)
+
+		// Trade confirmation (HITL)
+		r.Post("/trade/confirm", s.handleTradeConfirm)
 
 		// Configuration
 		r.Get("/config", s.handleGetConfig)
 		r.Put("/config", s.handleUpdateConfig)
 		r.Get("/config/keys", s.handleGetConfigKeys)
 
-		// WebSocket
+		// WebSocket (unified + channel sub-paths)
 		r.Get("/ws", s.handleWebSocket)
+		r.Get("/ws/market", s.handleWebSocket)
+		r.Get("/ws/chat", s.handleWebSocket)
+		r.Get("/ws/alerts", s.handleWebSocket)
 	})
 
 	// Serve embedded web UI (SPA with fallback to index.html)
@@ -314,6 +348,14 @@ type QueryExplainResponse struct {
 type QueryResult struct {
 	Type   string      `json:"type"`
 	Value  interface{} `json:"value"`
+}
+
+// MoverEntry represents a top mover stock.
+type MoverEntry struct {
+	Ticker        string  `json:"ticker"`
+	Name          string  `json:"name"`
+	Price         float64 `json:"price"`
+	ChangePercent float64 `json:"changePercent"`
 }
 
 // AlertInfo represents an active alert.
@@ -683,9 +725,539 @@ func (s *Server) handleAlerts(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// CreateAlertRequest is the body for POST /api/v1/alerts.
+type CreateAlertRequest struct {
+	Expression string `json:"expression"`
+}
+
+func (s *Server) handleCreateAlert(w http.ResponseWriter, r *http.Request) {
+	var req CreateAlertRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Expression == "" {
+		writeError(w, http.StatusBadRequest, "expression is required")
+		return
+	}
+	// TODO: persist alerts; for now return a stub
+	alert := AlertInfo{
+		ID:         fmt.Sprintf("alert-%d", time.Now().UnixNano()),
+		Expression: req.Expression,
+		Status:     "pending",
+	}
+	writeJSON(w, http.StatusCreated, APIResponse{
+		Success: true,
+		Data:    alert,
+	})
+}
+
+func (s *Server) handleDeleteAlert(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "alert id is required")
+		return
+	}
+	// TODO: actually remove the alert from storage
+	writeJSON(w, http.StatusOK, APIResponse{
+		Success: true,
+		Data:    map[string]string{"deleted": id},
+	})
+}
+
+// ============================================================
+// Order handlers
+// ============================================================
+
+func (s *Server) handleGetOrders(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+
+	orders, err := s.broker.GetOrders(ctx)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse{
+		Success: true,
+		Data:    orders,
+	})
+}
+
+func (s *Server) handleGetOrderByID(w http.ResponseWriter, r *http.Request) {
+	orderID := chi.URLParam(r, "id")
+	if orderID == "" {
+		writeError(w, http.StatusBadRequest, "order id is required")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+
+	order, err := s.broker.GetOrderByID(ctx, orderID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse{
+		Success: true,
+		Data:    order,
+	})
+}
+
+func (s *Server) handlePlaceOrder(w http.ResponseWriter, r *http.Request) {
+	var req models.OrderRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Ticker == "" {
+		writeError(w, http.StatusBadRequest, "ticker is required")
+		return
+	}
+	if req.Quantity <= 0 {
+		writeError(w, http.StatusBadRequest, "quantity must be positive")
+		return
+	}
+
+	req.Ticker = utils.NormalizeTicker(req.Ticker)
+
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+
+	resp, err := s.broker.PlaceOrder(ctx, req)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Broadcast order event via WebSocket
+	s.wsHub.Broadcast(WSMessage{
+		Type: "order_placed",
+		Data: map[string]interface{}{
+			"order_id": resp.OrderID,
+			"ticker":   req.Ticker,
+			"side":     req.Side,
+			"status":   resp.Status,
+		},
+	})
+
+	writeJSON(w, http.StatusCreated, APIResponse{
+		Success: true,
+		Data:    resp,
+	})
+}
+
+func (s *Server) handleModifyOrder(w http.ResponseWriter, r *http.Request) {
+	orderID := chi.URLParam(r, "id")
+	if orderID == "" {
+		writeError(w, http.StatusBadRequest, "order id is required")
+		return
+	}
+
+	var req models.OrderRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+
+	resp, err := s.broker.ModifyOrder(ctx, orderID, req)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse{
+		Success: true,
+		Data:    resp,
+	})
+}
+
+func (s *Server) handleCancelOrder(w http.ResponseWriter, r *http.Request) {
+	orderID := chi.URLParam(r, "id")
+	if orderID == "" {
+		writeError(w, http.StatusBadRequest, "order id is required")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+
+	if err := s.broker.CancelOrder(ctx, orderID); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse{
+		Success: true,
+		Data:    map[string]string{"cancelled": orderID},
+	})
+}
+
+// ============================================================
+// Position & Funds handlers
+// ============================================================
+
+func (s *Server) handleGetPositions(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+
+	positions, err := s.broker.GetPositions(ctx)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse{
+		Success: true,
+		Data:    positions,
+	})
+}
+
+func (s *Server) handleGetFunds(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+
+	margins, err := s.broker.GetMargins(ctx)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse{
+		Success: true,
+		Data:    margins,
+	})
+}
+
+// ============================================================
+// Market data handlers
+// ============================================================
+
+func (s *Server) handleOHLCV(w http.ResponseWriter, r *http.Request) {
+	ticker := chi.URLParam(r, "ticker")
+	if ticker == "" {
+		writeError(w, http.StatusBadRequest, "ticker is required")
+		return
+	}
+
+	ticker = utils.NormalizeTicker(ticker)
+
+	// Parse query params
+	tfStr := r.URL.Query().Get("timeframe")
+	if tfStr == "" {
+		tfStr = "1D"
+	}
+
+	daysStr := r.URL.Query().Get("days")
+	days := 365
+	if daysStr != "" {
+		if d, err := fmt.Sscanf(daysStr, "%d", &days); d < 1 || err != nil {
+			days = 365
+		}
+	}
+
+	tf := models.Timeframe1Day
+	switch strings.ToUpper(tfStr) {
+	case "1M", "1MIN":
+		tf = models.Timeframe1Min
+	case "5M", "5MIN":
+		tf = models.Timeframe5Min
+	case "15M", "15MIN":
+		tf = models.Timeframe15Min
+	case "1H", "1HOUR":
+		tf = models.Timeframe1Hour
+	case "1D", "1DAY", "DAILY":
+		tf = models.Timeframe1Day
+	case "1W", "1WEEK", "WEEKLY":
+		tf = models.Timeframe1Week
+	}
+
+	to := time.Now()
+	from := to.AddDate(0, 0, -days)
+
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	candles, err := s.agg.FetchHistoricalData(ctx, ticker, from, to, tf)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse{
+		Success: true,
+		Data:    candles,
+	})
+}
+
+func (s *Server) handleMarketIndices(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+
+	overview, err := s.agg.FetchMarketOverview(ctx)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	type IndexData struct {
+		Name          string  `json:"name"`
+		Value         float64 `json:"value"`
+		Change        float64 `json:"change"`
+		ChangePercent float64 `json:"changePercent"`
+	}
+
+	var indices []IndexData
+	if overview.Nifty50 != nil {
+		indices = append(indices, IndexData{
+			Name:          "NIFTY 50",
+			Value:         overview.Nifty50.LastPrice,
+			Change:        overview.Nifty50.Change,
+			ChangePercent: overview.Nifty50.ChangePct,
+		})
+	}
+	if overview.BankNifty != nil {
+		indices = append(indices, IndexData{
+			Name:          "BANK NIFTY",
+			Value:         overview.BankNifty.LastPrice,
+			Change:        overview.BankNifty.Change,
+			ChangePercent: overview.BankNifty.ChangePct,
+		})
+	}
+	if overview.IndiaVIX != nil {
+		indices = append(indices, IndexData{
+			Name:          "INDIA VIX",
+			Value:         overview.IndiaVIX.Value,
+			Change:        overview.IndiaVIX.Change,
+			ChangePercent: overview.IndiaVIX.ChangePct,
+		})
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse{
+		Success: true,
+		Data:    indices,
+	})
+}
+
+func (s *Server) handleTopMovers(w http.ResponseWriter, r *http.Request) {
+	direction := r.URL.Query().Get("direction")
+	if direction == "" {
+		direction = "gainers"
+	}
+
+	// Use a set of popular tickers to compute top movers
+	tickers := []string{"RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK",
+		"HINDUNILVR", "BHARTIARTL", "ITC", "SBIN", "BAJFINANCE",
+		"LT", "KOTAKBANK", "AXISBANK", "ASIANPAINT", "MARUTI"}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+
+	var movers []MoverEntry
+	results := make(chan MoverEntry, len(tickers))
+	var wg sync.WaitGroup
+
+	for _, t := range tickers {
+		wg.Add(1)
+		go func(ticker string) {
+			defer wg.Done()
+			q, err := s.agg.YFinance().GetQuote(ctx, ticker)
+			if err != nil || q == nil {
+				return
+			}
+			results <- MoverEntry{
+				Ticker:        q.Ticker,
+				Name:          q.Name,
+				Price:         q.LastPrice,
+				ChangePercent: q.ChangePct,
+			}
+		}(t)
+	}
+
+	wg.Wait()
+	close(results)
+
+	for m := range results {
+		movers = append(movers, m)
+	}
+
+	// Sort by changePercent
+	if direction == "gainers" {
+		sortMovers(movers, false) // descending
+	} else {
+		sortMovers(movers, true) // ascending
+	}
+
+	// Return top 10
+	if len(movers) > 10 {
+		movers = movers[:10]
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse{
+		Success: true,
+		Data:    movers,
+	})
+}
+
+func (s *Server) handleFIIDII(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+
+	data, err := s.agg.FIIDII().GetFIIDIIActivity(ctx)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse{
+		Success: true,
+		Data:    data,
+	})
+}
+
+// ============================================================
+// Screener & Search handlers
+// ============================================================
+
+// ScreenerRequest is the body for POST /api/v1/screener.
+type ScreenerRequest struct {
+	Query string `json:"query"`
+}
+
+func (s *Server) handleScreener(w http.ResponseWriter, r *http.Request) {
+	var req ScreenerRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	// TODO: implement real screener logic based on query filters
+	// For now, return empty results
+	writeJSON(w, http.StatusOK, APIResponse{
+		Success: true,
+		Data:    []interface{}{},
+	})
+}
+
+func (s *Server) handleSearchTickers(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query().Get("q")
+	if q == "" {
+		writeJSON(w, http.StatusOK, APIResponse{
+			Success: true,
+			Data:    []interface{}{},
+		})
+		return
+	}
+
+	q = strings.ToUpper(q)
+
+	// Use a static list of well-known NSE tickers for autocomplete
+	knownTickers := map[string]string{
+		"RELIANCE":    "Reliance Industries Ltd",
+		"TCS":         "Tata Consultancy Services Ltd",
+		"INFY":        "Infosys Ltd",
+		"HDFCBANK":    "HDFC Bank Ltd",
+		"ICICIBANK":   "ICICI Bank Ltd",
+		"HINDUNILVR":  "Hindustan Unilever Ltd",
+		"BHARTIARTL":  "Bharti Airtel Ltd",
+		"ITC":         "ITC Ltd",
+		"SBIN":        "State Bank of India",
+		"BAJFINANCE":  "Bajaj Finance Ltd",
+		"LT":          "Larsen & Toubro Ltd",
+		"KOTAKBANK":   "Kotak Mahindra Bank Ltd",
+		"AXISBANK":    "Axis Bank Ltd",
+		"ASIANPAINT":  "Asian Paints Ltd",
+		"MARUTI":      "Maruti Suzuki India Ltd",
+		"WIPRO":       "Wipro Ltd",
+		"TITAN":       "Titan Company Ltd",
+		"HCLTECH":     "HCL Technologies Ltd",
+		"SUNPHARMA":   "Sun Pharmaceutical Industries Ltd",
+		"TATAMOTORS":  "Tata Motors Ltd",
+		"ONGC":        "Oil and Natural Gas Corporation Ltd",
+		"NTPC":        "NTPC Ltd",
+		"POWERGRID":   "Power Grid Corporation of India Ltd",
+		"ULTRACEMCO":  "UltraTech Cement Ltd",
+		"TECHM":       "Tech Mahindra Ltd",
+		"TATASTEEL":   "Tata Steel Ltd",
+		"BAJAJFINSV":  "Bajaj Finserv Ltd",
+		"NESTLEIND":   "Nestle India Ltd",
+		"INDUSINDBK":  "IndusInd Bank Ltd",
+		"HDFCLIFE":    "HDFC Life Insurance Co Ltd",
+	}
+
+	type TickerResult struct {
+		Ticker string `json:"ticker"`
+		Name   string `json:"name"`
+	}
+
+	var results []TickerResult
+	for ticker, name := range knownTickers {
+		if strings.Contains(ticker, q) || strings.Contains(strings.ToUpper(name), q) {
+			results = append(results, TickerResult{Ticker: ticker, Name: name})
+			if len(results) >= 10 {
+				break
+			}
+		}
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse{
+		Success: true,
+		Data:    results,
+	})
+}
+
+// ============================================================
+// Trade confirmation handler (HITL)
+// ============================================================
+
+// TradeConfirmRequest is the body for POST /api/v1/trade/confirm.
+type TradeConfirmRequest struct {
+	ProposalID    string                 `json:"proposalId"`
+	Action        string                 `json:"action"` // "approve", "reject", "modify"
+	Modifications map[string]interface{} `json:"modifications,omitempty"`
+}
+
+func (s *Server) handleTradeConfirm(w http.ResponseWriter, r *http.Request) {
+	var req TradeConfirmRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.ProposalID == "" || req.Action == "" {
+		writeError(w, http.StatusBadRequest, "proposalId and action are required")
+		return
+	}
+
+	// TODO: locate the pending trade proposal and apply the action
+	writeJSON(w, http.StatusOK, APIResponse{
+		Success: true,
+		Data: map[string]string{
+			"proposal_id": req.ProposalID,
+			"status":      req.Action + "d",
+		},
+	})
+}
+
 // ============================================================
 // Helpers
 // ============================================================
+
+// sortMovers sorts MoverEntry slice by changePercent.
+// If ascending is true, sort lowest first (losers); otherwise highest first (gainers).
+func sortMovers(movers []MoverEntry, ascending bool) {
+	sort.Slice(movers, func(i, j int) bool {
+		if ascending {
+			return movers[i].ChangePercent < movers[j].ChangePercent
+		}
+		return movers[i].ChangePercent > movers[j].ChangePercent
+	})
+}
 
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")

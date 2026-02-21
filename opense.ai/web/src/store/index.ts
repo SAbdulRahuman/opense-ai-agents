@@ -8,8 +8,9 @@ import { createChartDrawingsSlice, type ChartDrawingsSlice } from "./chartDrawin
 import { createConfigSlice, type ConfigSlice } from "./configSlice";
 import { createMarketSlice, type MarketSlice } from "./marketSlice";
 import { createQuerySlice, type QuerySlice } from "./querySlice";
+import { createTradingSlice, type TradingSlice } from "./tradingSlice";
 
-export type AppStore = ChatSlice & ChartDrawingsSlice & ConfigSlice & MarketSlice & QuerySlice;
+export type AppStore = ChatSlice & ChartDrawingsSlice & ConfigSlice & MarketSlice & QuerySlice & TradingSlice;
 
 export const useStore = create<AppStore>()((...a) => ({
   ...createChatSlice(...a),
@@ -17,4 +18,5 @@ export const useStore = create<AppStore>()((...a) => ({
   ...createConfigSlice(...a),
   ...createMarketSlice(...a),
   ...createQuerySlice(...a),
+  ...createTradingSlice(...a),
 }));

@@ -39,3 +39,6 @@ web/.env.local
 # Misc
 *.log
 tmp/
+
+# Tasks
+tasks/

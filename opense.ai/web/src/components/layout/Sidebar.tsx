@@ -15,6 +15,9 @@ import {
   Settings,
   PanelLeftClose,
   PanelLeft,
+  ClipboardList,
+  ArrowLeftRight,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -25,6 +28,9 @@ const navItems = [
   { href: "/chat", icon: MessageSquare, label: "Chat" },
   { href: "/financeql", icon: Terminal, label: "FinanceQL" },
   { href: "/portfolio", icon: Briefcase, label: "Portfolio" },
+  { href: "/orders", icon: ClipboardList, label: "Orders" },
+  { href: "/positions", icon: ArrowLeftRight, label: "Positions" },
+  { href: "/funds", icon: Wallet, label: "Funds" },
   { href: "/screener", icon: Filter, label: "Screener" },
   { href: "/backtest", icon: FlaskConical, label: "Backtest" },
   { href: "/settings", icon: Settings, label: "Settings" },
